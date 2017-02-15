@@ -1,0 +1,67 @@
+---
+title: "R NotebookTask 05"
+author: Lauren Mullen
+date: "Febuary 15th 2017"
+output: html_notebook
+---
+
+
+#Introduction
+Here we are going to complete the task with data manipulation and a plot. This will be a markdown file that we can then upload to github repository.
+*This should be in italics* **this should be in bold** 
+
+
+```{r}
+# Load required packages
+library(plyr) # 'split-apply-combine'
+library(lubridate) # Deals with dates
+library(ggplot2) # plotting
+library(reshape2)
+source("R/lm_stats.R") # start from working directory
+
+# Set graphical theme
+theme_set(theme_bw() + theme(text=element_text(size=9)))
+
+
+
+#load data
+thirteen <- read.csv ("data/PEEC/MSXUT_v2_2013_updated.csv")
+fifteen <- read.csv ("data/PEEC/MSXUT_2015_compiled.csv")
+tnmine <- read.csv ("data/PEEC/2015_TN_compiled_fixed.csv")
+sixteen <- read.csv ("data/PEEC/2016_12_12_PEEC_2016_data.csv")
+
+all_data_list <- list(thirteen=thirteen, fifteen=fifteen, tnmine=tnmine, sixteen=sixteen)
+
+raw_df <- ldply(all_data_list, identity)
+#raw_df <- rename(raw_df, c(".id" = "location"))
+
+
+
+#add substrate names and set unlabled reps to A
+raw_df$substrate <- factor(raw_df$substrate, labels=c("Arg-AMC", "Gly-AMC", "Leu-AMC", "Pyr-AMC", "GGR-AMC"))
+raw_df$rep[raw_df$rep==""] <- "A"
+
+times <- paste("2015_06_01", raw_df$time)
+raw_df$Rtime <- ymd_hm(times) #makes time into time object
+#raw_df$elapsed <- as.numeric(raw_df$Rtime - min(raw_df$Rtime))/3600
+raw_df <- ddply(raw_df, c("site"), mutate, elapsed=as.numeric(Rtime-min(Rtime))/3600)
+attr(raw_df$elapsed, "units") <- "hours"
+
+#generate plot
+p_raw <- ggplot(raw_df, aes(elapsed, y=RFU, shape=treatment, colour=site, fill=treatment)) +
+  geom_point() +
+  geom_smooth(method="lm", se=TRUE) +
+  facet_grid(when ~ fluorimeter ~ substrate, scales = "free") +
+  theme(text=element_text(size=9), axis.text.x=element_text(angle=-70, hjust=0))
+plot(p_raw)
+```
+---
+
+
+```{r}
+plot(p_raw)
+```
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Ctrl+Shift+K* to preview the HTML file).
